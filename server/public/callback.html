@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Logging in...</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-size: 2em;
+      font-family: sans-serif;
+      margin: 2em auto 0 auto;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Logging in...</h1>
+  <script>
+    const accessToken = document.cookie.split('=')[1];
+    if (accessToken && window.opener) {
+      window.opener.postMessage({ accessToken }, 'http://localhost:8080');
+      window.close();
+    }
+  </script>
+</body>
+</html>
