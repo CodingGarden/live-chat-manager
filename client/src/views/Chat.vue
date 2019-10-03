@@ -1,30 +1,33 @@
 <template>
   <section class="app">
-    <section class="messages">
-      <h2>{{unAckMessages}} / {{messages.length}}</h2>
-      <message
-        style="width: 100%;"
-        :key="message.id"
-        v-for="(message, index) in messages"
-        v-if="!ackMessages[message.id]"
-        :author="authors[message.channelId]"
-        :message="message"
-        :index="index"
-        :acknowledge="acknowledge"></message>
-    </section>
-    <section class="live-messages">
-      <message
-        style="width: 100%;"
-        :style="{
-          opacity: ackMessages[message.id] ? 0.5 : 1
-        }"
-        :key="message.id"
-        v-for="(message, index) in reversedMessages"
-        :author="authors[message.channelId]"
-        :message="message"
-        :index="index"
-        :acknowledge="acknowledge"></message>
-    </section>
+    <h2>{{unAckMessages}} / {{messages.length}}</h2>
+    <div class="msg-section" >
+      <section>
+        <message
+          style="width: 100%;"
+          :key="message.id"
+          v-for="(message, index) in messages"
+          :platform="message.platform"
+          v-if="!ackMessages[message.id]"
+          :author="authors[message.channelId]"
+          :message="message"
+          :index="index"
+          :acknowledge="acknowledge"></message>
+      </section>
+      <section>
+        <message
+          style="width: 100%;"
+          :style="{
+            opacity: ackMessages[message.id] ? 0.5 : 1
+          }"
+          :key="message.id"
+          v-for="(message, index) in reversedMessages"
+          :author="authors[message.channelId]"
+          :message="message"
+          :index="index"
+          :acknowledge="acknowledge"></message>
+      </section>
+    </div>
   </section>
 </template>
 
@@ -41,7 +44,8 @@ export default {
   },
   data: () => ({
     messages: [],
-    authors: {},
+    authors: {
+    },
     ackMessages: localStorage.ackMessages ? JSON.parse(localStorage.ackMessages) : {},
   }),
   computed: {
@@ -85,32 +89,34 @@ export default {
 body {
   font-family: sans-serif;
   box-sizing: border-box;
+
+}
+
+main {
+  background-color: black;
 }
 
 .app {
   display: flex;
+  flex-direction: column;
+  margin: 0 10px;
 }
 
-.messages {
-  width: 60%;
-  display: flex;
-  flex-wrap: wrap;
-  flex-grow: 0;
-}
+.app
 
-.live-messages {
-  width: 40%;
-  flex-grow: 0;
-  position: fixed;
-  right: 0;
-  overflow: scroll;
-  height: 100vh;
+.msg-section {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  grid-column-gap: 10px;
+  
 }
 
 .message {
   display: flex;
   align-items: center;
   position: relative;
+  border-radius: 20px;
+  margin-bottom: 10px;
 }
 
 .avatar {
@@ -124,7 +130,12 @@ body {
 
 .avatar img {
   border-radius: 50%;
-  height: 30px;
+  height: 35px;
+}
+
+.avatar small {
+  background-color:rgba(0, 0, 0, 0.7);
+  padding: 0 5px;
 }
 
 .message p {
@@ -135,8 +146,8 @@ body {
 
 .message .buttons {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: 10px;
+  right: 10px;
 }
 
 .message:nth-child(1n) {

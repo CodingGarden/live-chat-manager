@@ -23,3 +23,9 @@ export default {
   },
 };
 </script>
+
+<style>
+.v-toolbar__content {
+  background-color: rgb(0,0,0,0.75);
+}
+</style>
