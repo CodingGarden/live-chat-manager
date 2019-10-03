@@ -140,10 +140,10 @@ body {
 }
 
 .message:nth-child(1n) {
-  border: 1px solid #EEE;
+  border: 1px solid #212122;
 }
 
 .message:nth-child(2n) {
-  background-color: #EEE;
+  background-color: black;
 }
 </style>
