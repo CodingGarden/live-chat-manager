@@ -2,7 +2,7 @@
   <v-app>
     <v-app-bar app>
       <v-toolbar-title class="headline text-uppercase">
-        <span>YouTube Chat Manager</span>
+        <img src="/img/logo.png" class="logo" />
       </v-toolbar-title>
     </v-app-bar>
     <v-content>
@@ -27,5 +27,9 @@ export default {
 <style>
 .v-toolbar__content {
   background-color: rgb(0,0,0,0.75);
+}
+
+.logo {
+  width: 50px;
 }
 </style>

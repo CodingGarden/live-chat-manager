@@ -10,6 +10,8 @@
   "dependencies": {
     "@babel/polyfill": "^7.4.4",
     "core-js": "^2.6.5",
+    "dompurify": "^2.0.3",
+    "marked": "^0.7.0",
     "socket.io-client": "^2.2.0",
     "vue": "^2.6.10",
     "vue-router": "^3.0.3",

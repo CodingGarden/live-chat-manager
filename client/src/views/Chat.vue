@@ -1,11 +1,11 @@
 <template>
   <section class="app">
     <h2>{{unAckMessages}} / {{messages.length}}</h2>
-    <div class="msg-section" >
-      <section>
+    <div class="msg-section">
+      <section class="un-ack-messages">
         <message
           style="width: 100%;"
-          :key="message.id"
+          :key="message.id + 'un-ack'"
           v-for="(message, index) in messages"
           :platform="message.platform"
           v-if="!ackMessages[message.id]"
@@ -14,13 +14,13 @@
           :index="index"
           :acknowledge="acknowledge"></message>
       </section>
-      <section>
+      <section  class="all-messages">
         <message
           style="width: 100%;"
           :style="{
             opacity: ackMessages[message.id] ? 0.5 : 1
           }"
-          :key="message.id"
+          :key="message.id + 'ack'"
           v-for="(message, index) in reversedMessages"
           :author="authors[message.channelId]"
           :message="message"
@@ -102,13 +102,18 @@ main {
   margin: 0 10px;
 }
 
-.app
-
 .msg-section {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  grid-column-gap: 10px;
-  
+  display: flex;
+}
+
+.msg-section .un-ack-messages {
+  width: 60%;
+  padding: 1rem;
+}
+
+.msg-section .all-messages {
+  width: 40%;
+  padding: 1rem;
 }
 
 .message {
@@ -141,7 +146,8 @@ main {
 .message p {
   padding: 1em;
   overflow-wrap: break-word;
-  word-break: break-all;
+  word-break: break-word;
+  hyphens: auto;
 }
 
 .message .buttons {

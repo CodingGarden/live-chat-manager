@@ -1,5 +1,9 @@
 const express = require('express');
 const fetch = require('node-fetch');
+const tmi = require('tmi.js');
+const db = require('monk')('localhost/chat-manager');
+
+const events = db.get('events');
 
 const socket = require('../socket');
 
@@ -7,10 +11,34 @@ const router = express.Router();
 
 const STREAMS_URL = 'https://www.googleapis.com/youtube/v3/liveBroadcasts';
 const MESSAGES_URL = 'https://www.googleapis.com/youtube/v3/liveChat/messages';
-const liveChats = {};
+let listening = false;
+
+const twitchClient = new tmi.Client({
+  options: {
+    debug: true
+  },
+  connection: {
+      reconnect: true,
+      secure: true
+  },
+  channels: [ "#codinggarden" ]
+});
+
+async function updateDB(liveChat) {
+  try {
+    await events.update({ id: liveChat.id  }, {
+      $set: {
+        ...liveChat,
+      }
+    });
+  } catch (error) {
+    console.error(error);
+  }
+}
 
 async function getLatestMessages(io, liveChatId) {
   let nextPageToken = '';
+  listening = true;
 
   const params = new URLSearchParams({
     liveChatId,
@@ -19,7 +47,74 @@ async function getLatestMessages(io, liveChatId) {
     key: process.env.GOOGLE_API_KEY,
   });
 
-  const liveChat = liveChats[liveChatId];
+  const liveChat = await events.findOne({ id: liveChatId  });
+  delete liveChat._id;
+
+  twitchClient.connect();
+
+  twitchClient.on('message', async (channel, userstate, message, self) => {
+    const channelId = userstate['user-id'];
+    if (!liveChat.authorsById[channelId]) {
+      const response = await fetch('https://api.twitch.tv/helix/users?id=' + channelId, {
+        method: 'GET',
+        headers: {
+          'Client-ID': process.env.TWITCH_CLIENT_ID
+        }
+      });
+      const { data: [{ profile_image_url: profileImageUrl }] } = await response.json();
+
+      const author = {
+        channelId,
+        channelUrl: `https://twitch.tv/${userstate.username}`,
+        displayName: userstate['display-name'],
+        isChatModerator: userstate.badges && (userstate.badges.moderator || userstate.badges.broadcaster),
+        isChatOwner: false,
+        isChatSponsor: false,
+        isVerified: false,
+        profileImageUrl,
+      };
+      liveChat.authorsById[channelId] = author;
+      io.emit(`authors/${liveChatId}`, [author]);
+      await updateDB(liveChat);
+    }
+
+    let messageWithEmotes = '';
+    if (userstate.emotes) {
+      const emoteIds = Object.keys(userstate.emotes);
+      const emoteStart = emoteIds.reduce((starts, id) => {
+        userstate.emotes[id].forEach(startEnd => {
+          const [start, end] = startEnd.split('-');
+          starts[start] = {
+            emoteUrl: `![](https://static-cdn.jtvnw.net/emoticons/v1/${id}/2.0)`,
+            end,
+          };
+        });
+        return starts;
+      }, {});
+      for (let i = 0; i < message.length; i++) {
+        const char = message[i];
+        const emoteInfo = emoteStart[i];
+        if (emoteInfo) {
+          messageWithEmotes += emoteInfo.emoteUrl;
+          i = emoteInfo.end;
+        } else {
+          messageWithEmotes += char;
+        }
+      }
+    }
+
+    const event = {
+      id: userstate.id,
+      message: messageWithEmotes || message,
+      publishedAt: new Date(+userstate['tmi-sent-ts']),
+      channelId,
+      platform: 'twitch',
+    };
+    liveChat.messagesById[event.id] = event;
+    liveChat.messages.push(event);
+    io.emit(`messages/${liveChatId}`, [event]);
+    await updateDB(liveChat);
+  });
 
   do {
     let url = `${MESSAGES_URL}?${params}`;
@@ -46,6 +141,7 @@ async function getLatestMessages(io, liveChatId) {
             message: snippet.displayMessage,
             publishedAt: snippet.publishedAt,
             channelId: authorDetails.channelId,
+            platform: 'youtube'
           };
 
           if (snippet.type == 'superChatEvent') {
@@ -65,7 +161,9 @@ async function getLatestMessages(io, liveChatId) {
           }
           io.emit(`messages/${liveChatId}`, newMessages);
         }
+        await updateDB(liveChat);
       }
+
     } else {
       console.error(JSON.stringify(result, null, 2));
     }
@@ -78,32 +176,40 @@ async function getLatestMessages(io, liveChatId) {
   } while (nextPageToken);
 }
 
-router.get('/messages', (req, res, next) => {
+router.get('/messages', async (req, res, next) => {
   const { id } = req.query;
   if (!id) return next(new Error('Invalid chat id.'));
-  if (!liveChats[id]) {
-    liveChats[id] = {
+  let liveChat = await events.findOne({ id });
+  if (!liveChat) {
+    liveChat = await events.insert({
+      id,
       messages: [],
       messagesById: {},
       authorsById: {},
-    };
+    });
+  }
+  if (!listening) {
     getLatestMessages(socket.io, id);
   }
-  res.json(liveChats[id].messages);
+  res.json(liveChat.messages);
 });
 
-router.get('/authors', (req, res) => {
+router.get('/authors', async (req, res) => {
   const { id } = req.query;
   if (!id) return next(new Error('Invalid chat id.'));
-  if (!liveChats[id]) {
-    liveChats[id] = {
+  let liveChat = await events.findOne({ id });
+  if (!liveChat) {
+    liveChat = await events.insert({
+      id,
       messages: [],
       messagesById: {},
       authorsById: {},
-    };
+    });
+  }
+  if (!listening) {
     getLatestMessages(socket.io, id);
   }
-  res.json(liveChats[id].authorsById);
+  res.json(liveChat.authorsById);
 });
 
 router.get('/streams', async (req, res) => {
