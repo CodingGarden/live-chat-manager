@@ -42,7 +42,7 @@ export default {
   background-size: cover;
 }
 .discord-style {
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.5) 100%), url('/img/discord.jpg');
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.5) 100%), url('/img/discord.png');
   background-size: cover;
 }
 

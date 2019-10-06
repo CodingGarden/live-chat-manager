@@ -2,6 +2,8 @@ const express = require('express');
 const fetch = require('node-fetch');
 const tmi = require('tmi.js');
 const db = require('monk')('localhost/chat-manager');
+const Discord = require('discord.js')
+const disClient = new Discord.Client()
 
 const events = db.get('events');
 
@@ -23,6 +25,8 @@ const twitchClient = new tmi.Client({
   },
   channels: [ "#codinggarden" ]
 });
+
+disClient.login(process.env.DISCORD_BOT_TOKEN);
 
 async function updateDB(liveChat) {
   try {
@@ -174,6 +178,36 @@ async function getLatestMessages(io, liveChatId) {
       setTimeout(resolve, result.pollingIntervalMillis);
     });
   } while (nextPageToken);
+
+  disClient.on('message', message => {
+    if(message.channel.id === process.env.DISCORD_CHANNEL_ID){
+      if (!liveChat.authorsById[message.author.id]) {
+        const author = {
+          channelId : message.author.id,
+          displayName: message.author.username,
+          profileImageUrl: message.author.avatarURL
+        };
+  
+        liveChat.authorsById[message.author.id] = author;
+        io.emit(`authors/${liveChatId}`, [author]);
+      }
+
+      const withEmojis = message.content.replace(/<:.+?:(\d+)>/g, `<img width="30px" src="https://cdn.discordapp.com/emojis/$1.png?v=1">`)
+
+      const msg = {
+        id: message.id,
+        channelId: message.author.id,
+        message: withEmojis,
+        publishedAt: message.createdAt,
+        platform: 'discord'
+      }
+  
+      liveChat.messagesById[message.id] = msg;
+      liveChat.messages.push(msg);
+      io.emit(`messages/${liveChatId}`, [msg]);
+      updateDB(liveChat);
+    }
+  });
 }
 
 router.get('/messages', async (req, res, next) => {
