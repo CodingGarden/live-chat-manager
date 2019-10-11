@@ -1,6 +1,9 @@
 <template>
   <section class="app">
     <h2>{{unAckMessages}} / {{messages.length}}</h2>
+    <div>
+      <button v-on:click="hideMessages">Hide</button>
+    </div>
     <div class="msg-section">
       <section class="un-ack-messages">
         <message
@@ -12,7 +15,8 @@
           :author="authors[message.channelId]"
           :message="message"
           :index="index"
-          :acknowledge="acknowledge"></message>
+          :acknowledge="acknowledge"
+          v-if="hidden"></message>
       </section>
       <section  class="all-messages">
         <message
@@ -47,6 +51,8 @@ export default {
     authors: {
     },
     ackMessages: localStorage.ackMessages ? JSON.parse(localStorage.ackMessages) : {},
+    hideFor: 1000 * 60 * 10, // 10 minutes
+    hidden: false
   }),
   computed: {
     unAckMessages() {
@@ -81,6 +87,11 @@ export default {
       this.$set(this.ackMessages, message.id, true);
       localStorage.ackMessages = JSON.stringify(this.ackMessages);
     },
+    hideMessages() {
+      this.hidden = true;
+
+      window.setTimeout(() => this.hidden = false, this.hideFor);
+    }
   },
 };
 </script>
