@@ -52,4 +52,9 @@ export default {
   word-break: break-word;
   hyphens: auto;
 }
+
+.message-element img {
+  width: 100%;
+  height: auto;
+}
 </style>
