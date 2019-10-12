@@ -13,6 +13,7 @@
   "license": "MIT",
   "dependencies": {
     "cors": "^2.8.5",
+    "discord.js": "^11.5.1",
     "dotenv": "^8.1.0",
     "express": "^4.17.1",
     "monk": "^7.1.0",
