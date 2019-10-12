@@ -9,9 +9,12 @@
       <span class="message-element" v-html="format(message.message)" />
     </div>
     <div class="buttons">
-      <button>🚫</button>
-      <button>🎉</button>
-      <button @click="acknowledge(index, message)">✅</button>
+      <v-btn text icon color="red" @click="setOffTopic(message)" v-if="setOffTopic">
+        <v-icon>mdi-account-question</v-icon>
+      </v-btn>
+      <v-btn text icon color="green" @click="acknowledge(index, message)">
+        <v-icon>mdi-checkbox-marked</v-icon>
+      </v-btn>
     </div>
     <small class="time">{{timeAgo(message.publishedAt)}}</small>
   </div>
@@ -26,7 +29,7 @@ const DOMPurify = createDOMPurify(window);
 const timeagoInstance = timeago();
 
 export default {
-  props: ['author', 'message', 'index', 'acknowledge'],
+  props: ['author', 'message', 'index', 'acknowledge', 'setOffTopic'],
   methods: {
     format(message) {
       return marked(DOMPurify.sanitize(message, { FORBID_ATTR: ['style'], FORBID_TAGS: ['table', 'script', 'audio', 'video', 'style', 'iframe', 'textarea'] }));
@@ -63,5 +66,10 @@ export default {
   position: absolute;
   bottom: 10px;
   left: 20px;
+}
+
+.message-element img {
+  max-width: 100%;
+  height: auto;
 }
 </style>
