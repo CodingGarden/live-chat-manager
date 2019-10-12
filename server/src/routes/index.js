@@ -15,21 +15,21 @@ let listening = false;
 
 const twitchClient = new tmi.Client({
   options: {
-    debug: true
+    debug: true,
   },
   connection: {
-      reconnect: true,
-      secure: true
+    reconnect: true,
+    secure: true,
   },
-  channels: [ "#codinggarden" ]
+  channels: ['#codinggarden'],
 });
 
 async function updateDB(liveChat) {
   try {
-    await events.update({ id: liveChat.id  }, {
+    await events.update({ id: liveChat.id }, {
       $set: {
         ...liveChat,
-      }
+      },
     });
   } catch (error) {
     console.error(error);
@@ -47,7 +47,7 @@ async function getLatestMessages(io, liveChatId) {
     key: process.env.GOOGLE_API_KEY,
   });
 
-  const liveChat = await events.findOne({ id: liveChatId  });
+  const liveChat = await events.findOne({ id: liveChatId });
   delete liveChat._id;
 
   twitchClient.connect();
@@ -55,13 +55,16 @@ async function getLatestMessages(io, liveChatId) {
   twitchClient.on('message', async (channel, userstate, message, self) => {
     const channelId = userstate['user-id'];
     if (!liveChat.authorsById[channelId]) {
-      const response = await fetch('https://api.twitch.tv/helix/users?id=' + channelId, {
+      const response = await fetch(`https://api.twitch.tv/helix/users?id=${channelId}`, {
         method: 'GET',
         headers: {
-          'Client-ID': process.env.TWITCH_CLIENT_ID
-        }
+          'Client-ID': process.env.TWITCH_CLIENT_ID,
+        },
       });
-      const { data: [{ profile_image_url: profileImageUrl }] } = await response.json();
+
+      const json = await response.json();
+      console.log(json);
+      const { data: [{ profile_image_url: profileImageUrl }] } = json;
 
       const author = {
         channelId,
@@ -82,7 +85,7 @@ async function getLatestMessages(io, liveChatId) {
     if (userstate.emotes) {
       const emoteIds = Object.keys(userstate.emotes);
       const emoteStart = emoteIds.reduce((starts, id) => {
-        userstate.emotes[id].forEach(startEnd => {
+        userstate.emotes[id].forEach((startEnd) => {
           const [start, end] = startEnd.split('-');
           starts[start] = {
             emoteUrl: `![](https://static-cdn.jtvnw.net/emoticons/v1/${id}/2.0)`,
@@ -116,6 +119,9 @@ async function getLatestMessages(io, liveChatId) {
     await updateDB(liveChat);
   });
 
+  // TODO: Show raids in chat ui
+  // client.on('raided', (channel, username, viewers) => {})
+
   do {
     let url = `${MESSAGES_URL}?${params}`;
     if (nextPageToken) {
@@ -141,7 +147,7 @@ async function getLatestMessages(io, liveChatId) {
             message: snippet.displayMessage,
             publishedAt: snippet.publishedAt,
             channelId: authorDetails.channelId,
-            platform: 'youtube'
+            platform: 'youtube',
           };
 
           if (snippet.type == 'superChatEvent') {
@@ -163,7 +169,6 @@ async function getLatestMessages(io, liveChatId) {
         }
         await updateDB(liveChat);
       }
-
     } else {
       console.error(JSON.stringify(result, null, 2));
     }
@@ -194,7 +199,7 @@ router.get('/messages', async (req, res, next) => {
   res.json(liveChat.messages);
 });
 
-router.get('/authors', async (req, res) => {
+router.get('/authors', async (req, res, next) => {
   const { id } = req.query;
   if (!id) return next(new Error('Invalid chat id.'));
   let liveChat = await events.findOne({ id });
@@ -215,18 +220,39 @@ router.get('/authors', async (req, res) => {
 router.get('/streams', async (req, res) => {
   const params = new URLSearchParams({
     part: 'snippet',
-    broadcastStatus: 'active',
+    channelId: 'UCLNgu_OupwoeESgtab33CCw',
     key: process.env.GOOGLE_API_KEY,
+    type: 'video',
+    eventType: 'live',
   });
 
-  const url = `${STREAMS_URL}?${params}`;
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${process.env.GOOGLE_TOKEN}`,
-    },
-  });
+  const url = `https://www.googleapis.com/youtube/v3/search?${params}`;
+  const response = await fetch(url);
   const json = await response.json();
-  res.json(json);
+  if (json.items && json.items.length) {
+    const liveStreams = await Promise.all(
+      json.items.map(async (video) => {
+        const videoParams = new URLSearchParams({
+          part: 'liveStreamingDetails',
+          id: video.id.videoId,
+          key: process.env.GOOGLE_API_KEY,
+        });
+        const videoUrl = `https://www.googleapis.com/youtube/v3/videos?${videoParams}`;
+        const videoResponse = await fetch(videoUrl);
+        const data = await videoResponse.json();
+        // eslint-disable-next-line
+        video.snippet.liveChatId = data.items[0].liveStreamingDetails.activeLiveChatId;
+        return {
+          ...video,
+          ...video.id,
+          ...data.items[0],
+        };
+      }),
+    );
+    res.json(liveStreams);
+  } else {
+    res.json([]);
+  }
 });
 
 module.exports = {

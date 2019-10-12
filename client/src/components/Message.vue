@@ -13,20 +13,26 @@
       <button>🎉</button>
       <button @click="acknowledge(index, message)">✅</button>
     </div>
+    <small class="time">{{timeAgo(message.publishedAt)}}</small>
   </div>
 </template>
 
 <script>
+import timeago from 'timeago.js';
 import marked from 'marked';
 import createDOMPurify from 'dompurify';
 
 const DOMPurify = createDOMPurify(window);
+const timeagoInstance = timeago();
 
 export default {
   props: ['author', 'message', 'index', 'acknowledge'],
   methods: {
     format(message) {
       return marked(DOMPurify.sanitize(message, { FORBID_ATTR: ['style'], FORBID_TAGS: ['table', 'script', 'audio', 'video', 'style', 'iframe', 'textarea'] }));
+    },
+    timeAgo(time) {
+      return timeagoInstance.format(time);
     },
   },
 };
@@ -51,5 +57,11 @@ export default {
   font-size: 20px;
   word-break: break-word;
   hyphens: auto;
+}
+
+.message .time {
+  position: absolute;
+  bottom: 10px;
+  left: 20px;
 }
 </style>

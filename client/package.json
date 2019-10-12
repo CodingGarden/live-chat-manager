@@ -13,6 +13,7 @@
     "dompurify": "^2.0.3",
     "marked": "^0.7.0",
     "socket.io-client": "^2.2.0",
+    "timeago.js": "^3.0.2",
     "vue": "^2.6.10",
     "vue-router": "^3.0.3",
     "vuetify": "^2.0.0",
