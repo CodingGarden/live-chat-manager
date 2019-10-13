@@ -1,13 +1,15 @@
+## Cleanup
+
 * [x] Upgrade dependencies
 * [x] Get the current event chat id
-* [x] List out live events for current user
+* [x] List out live events for channel
 
 ## Features
 
-* [ ] How many chat messages acknowledge vs need to acknowledge
+* [x] How many chat messages acknowledge vs need to acknowledge
 * [ ] Send a message...
 * [ ] Search chat messages
-* [ ] Label messages
+* [x] Label messages
   * Question
   * Hello / Hi
   * welcome,questions,suggestions,other conversations
@@ -17,7 +19,7 @@
   - chats intermingled with youtube chat
 * [ ] Label messages from mods
 * [ ] group messages by user
-* [ ] Show timestamp on messages
+* [x] Show timestamp on messages
 * [ ] offline watch w/ live chat
 * [ ] button for marking all messages as acknowledge
-* [ ] Allow markdown in chat message
+* [x] Allow markdown in chat message

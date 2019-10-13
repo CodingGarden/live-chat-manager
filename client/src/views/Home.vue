@@ -42,9 +42,7 @@ export default {
   }),
   async created() {
     const response = await fetch(API_URL);
-    const json = await response.json();
-    console.log(json);
-    this.events = json.items;
+    this.events = await response.json();
   },
 };
 </script>

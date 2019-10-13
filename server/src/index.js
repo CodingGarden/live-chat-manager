@@ -11,7 +11,6 @@ const app = express();
 const server = http.Server(app);
 const io = socketIO(server);
 
-const auth = require('./auth');
 const { router } = require('./routes');
 const socket = require('./socket');
 
@@ -29,7 +28,6 @@ app.get('/', (req, res) => {
 
 app.use(express.static('public'));
 app.use('/', router);
-app.use('/auth', auth);
 
 function notFound(req, res, next) {
   res.status(404);
@@ -37,6 +35,7 @@ function notFound(req, res, next) {
   next(error);
 }
 
+// eslint-disable-next-line
 function errorHandler(err, req, res, next) {
   res.status(res.statusCode || 500);
   res.json({

@@ -9,7 +9,6 @@ const socket = require('../socket');
 
 const router = express.Router();
 
-const STREAMS_URL = 'https://www.googleapis.com/youtube/v3/liveBroadcasts';
 const MESSAGES_URL = 'https://www.googleapis.com/youtube/v3/liveChat/messages';
 let listening = false;
 
@@ -21,12 +20,14 @@ const twitchClient = new tmi.Client({
     reconnect: true,
     secure: true,
   },
-  channels: ['#codinggarden'],
+  channels: [process.env.TWITCH_CHANNEL],
 });
 
 async function updateDB(liveChat) {
   try {
-    await events.update({ id: liveChat.id }, {
+    await events.update({
+      id: liveChat.id,
+    }, {
       $set: {
         ...liveChat,
       },
@@ -47,12 +48,14 @@ async function getLatestMessages(io, liveChatId) {
     key: process.env.GOOGLE_API_KEY,
   });
 
-  const liveChat = await events.findOne({ id: liveChatId });
+  const liveChat = await events.findOne({
+    id: liveChatId,
+  });
   delete liveChat._id;
 
   twitchClient.connect();
 
-  twitchClient.on('message', async (channel, userstate, message, self) => {
+  twitchClient.on('message', async (channel, userstate, message) => {
     const channelId = userstate['user-id'];
     if (!liveChat.authorsById[channelId]) {
       const response = await fetch(`https://api.twitch.tv/helix/users?id=${channelId}`, {
@@ -64,13 +67,18 @@ async function getLatestMessages(io, liveChatId) {
 
       const json = await response.json();
       console.log(json);
-      const { data: [{ profile_image_url: profileImageUrl }] } = json;
+      const {
+        data: [{
+          profile_image_url: profileImageUrl,
+        }],
+      } = json;
 
       const author = {
         channelId,
         channelUrl: `https://twitch.tv/${userstate.username}`,
         displayName: userstate['display-name'],
-        isChatModerator: userstate.badges && (userstate.badges.moderator || userstate.badges.broadcaster),
+        isChatModerator: userstate.badges
+          && (userstate.badges.moderator || userstate.badges.broadcaster),
         isChatOwner: false,
         isChatSponsor: false,
         isVerified: false,
@@ -135,7 +143,11 @@ async function getLatestMessages(io, liveChatId) {
 
       if (result.items && result.items.length > 0) {
         const newMessages = result.items.map((item) => {
-          const { id, snippet, authorDetails } = item;
+          const {
+            id,
+            snippet,
+            authorDetails,
+          } = item;
 
           if (!liveChat.authorsById[authorDetails.channelId]) {
             liveChat.authorsById[authorDetails.channelId] = authorDetails;
@@ -150,7 +162,7 @@ async function getLatestMessages(io, liveChatId) {
             platform: 'youtube',
           };
 
-          if (snippet.type == 'superChatEvent') {
+          if (snippet.type === 'superChatEvent') {
             message.superChat = snippet.superChatDetails;
           }
 
@@ -182,9 +194,13 @@ async function getLatestMessages(io, liveChatId) {
 }
 
 router.get('/messages', async (req, res, next) => {
-  const { id } = req.query;
+  const {
+    id,
+  } = req.query;
   if (!id) return next(new Error('Invalid chat id.'));
-  let liveChat = await events.findOne({ id });
+  let liveChat = await events.findOne({
+    id,
+  });
   if (!liveChat) {
     liveChat = await events.insert({
       id,
@@ -196,13 +212,17 @@ router.get('/messages', async (req, res, next) => {
   if (!listening) {
     getLatestMessages(socket.io, id);
   }
-  res.json(liveChat.messages);
+  return res.json(liveChat.messages);
 });
 
 router.get('/authors', async (req, res, next) => {
-  const { id } = req.query;
+  const {
+    id,
+  } = req.query;
   if (!id) return next(new Error('Invalid chat id.'));
-  let liveChat = await events.findOne({ id });
+  let liveChat = await events.findOne({
+    id,
+  });
   if (!liveChat) {
     liveChat = await events.insert({
       id,
@@ -214,13 +234,13 @@ router.get('/authors', async (req, res, next) => {
   if (!listening) {
     getLatestMessages(socket.io, id);
   }
-  res.json(liveChat.authorsById);
+  return res.json(liveChat.authorsById);
 });
 
 router.get('/streams', async (req, res) => {
   const params = new URLSearchParams({
     part: 'snippet',
-    channelId: 'UCLNgu_OupwoeESgtab33CCw',
+    channelId: process.env.YOUTUBE_CHANNEL_ID,
     key: process.env.GOOGLE_API_KEY,
     type: 'video',
     eventType: 'live',
