@@ -1,7 +1,6 @@
 const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
-const passport = require('passport');
 const http = require('http');
 const socketIO = require('socket.io');
 
@@ -18,7 +17,6 @@ socket.setIO(io);
 
 app.use(morgan('dev'));
 app.use(cors());
-app.use(passport.initialize());
 
 app.get('/', (req, res) => {
   res.json({
