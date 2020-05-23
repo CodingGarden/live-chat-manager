@@ -1,22 +1,26 @@
 <template>
-  <div :class="`message ${message.platform}-style`">
+  <div :class="{
+    message: true,
+    [`${message.platform}-style`]: true,
+    highlight: message.highlighted,
+  }" style="-webkit-app-region: drag">
     <div class="avatar">
       <img :src="author.profileImageUrl" />
       <small>{{author.displayName}}</small>
     </div>
     <div style="padding: 20px">
-      <span v-if="!showSource" class="message-element" v-html="format(message.message)" />
+      <span class="message-element" v-html="formatedMessage" />
       <pre v-if="showSource" class="source"><code class="html">{{message.message}}</code></pre>
     </div>
-    <div class="buttons">
-      <v-btn text icon color="red" @click="setOffTopic(message)" v-if="setOffTopic">
-        <v-icon>mdi-account-question</v-icon>
+    <div class="buttons" v-if="!hideButtons">
+      <v-btn text icon color="#E9CE2C" @click="setOffTopic(message)" v-if="setOffTopic">
+        <v-icon>mdi-parking</v-icon>
       </v-btn>
-      <v-btn text icon color="green" @click="acknowledge(index, message)">
+      <v-btn text icon color="#23CE6B" @click="acknowledge(index, message)">
         <v-icon>mdi-checkbox-marked</v-icon>
       </v-btn>
     </div>
-    <div class="source-view">
+    <div class="source-view" v-if="message.isPotentiallyNaughty">
       <v-btn text icon color="yellow" @click="showSource = !showSource">
         <v-icon>mdi-xml</v-icon>
       </v-btn>
@@ -33,25 +37,33 @@ import createDOMPurify from 'dompurify';
 const DOMPurify = createDOMPurify(window);
 const timeagoInstance = timeago();
 
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.hasAttribute('src')) {
+    node.setAttribute('src', `https://yacdn.org/serve/${node.getAttribute('src')}`);
+  }
+});
+
 export default {
-  props: ['author', 'message', 'index', 'acknowledge', 'setOffTopic'],
+  props: ['author', 'message', 'index', 'acknowledge', 'setOffTopic', 'hideButtons'],
   data: vm => ({
     timeoutId: -1,
     published: timeagoInstance.format(vm.time),
     showSource: false,
+    formatedMessage: '',
   }),
   created() {
     // eslint-disable-next-line
     this.message.message = this.message.message.replace('javascript:', 'wat:').replace('https://www.youtube.com/watch?v=dQw4w9WgXcQ', 'https://www.youtube.com/watch?v=l60MnDJklnM');
     this.updatePublished();
+    this.formatedMessage = this.format(this.message.message);
   },
   destroyed() {
     clearTimeout(this.timeoutId);
   },
   methods: {
     format(message) {
-      return marked(
-        DOMPurify.sanitize(message, {
+      return DOMPurify
+        .sanitize(marked(message), {
           FORBID_ATTR: [
             'style',
             'onerror',
@@ -65,9 +77,10 @@ export default {
             'style',
             'iframe',
             'textarea',
+            'frame',
+            'frameset',
           ],
-        }),
-      );
+        });
     },
     updatePublished() {
       this.published = timeagoInstance.format(this.message.publishedAt);
@@ -90,13 +103,14 @@ export default {
   background-size: cover;
 }
 .twitch-style {
-  background: linear-gradient(
+  background: #392F5A;
+  /* background: linear-gradient(
       to bottom,
       rgba(0, 0, 0, 0.5) 0%,
       rgba(0, 0, 0, 0.5) 100%
     ),
     url("/img/twitch3.jpg");
-  background-size: cover;
+  background-size: cover; */
 }
 .discord-style {
   background: linear-gradient(
@@ -106,6 +120,10 @@ export default {
     ),
     url("/img/discord.jpg");
   background-size: cover;
+}
+.highlight {
+  background: #BD2D87;
+  border: 10px solid #22DE1F;
 }
 
 .message-element {

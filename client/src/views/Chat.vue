@@ -46,11 +46,11 @@
           </v-tab>
 
           <v-tab href="#tab-4">
-            Questions
+            Parking Lot
             <div class="text-center">
               <v-badge>
                 <template v-slot:badge>{{offTopicMessages.length}}</template>
-                <v-icon>mdi-account-question</v-icon>
+                <v-icon>mdi-parking</v-icon>
               </v-badge>
               <br />
             </div>
@@ -121,7 +121,7 @@
           </v-tab-item>
         </v-tabs-items>
       </section>
-      <section  class="all-messages">
+      <!-- <section  class="all-messages">
         <message
           style="width: 100%;"
           :style="{
@@ -133,7 +133,7 @@
           :message="message"
           :index="index"
           :acknowledge="acknowledge"></message>
-      </section>
+      </section> -->
     </div>
   </section>
 </template>
@@ -144,7 +144,8 @@ import io from 'socket.io-client';
 import Message from '../components/Message.vue';
 
 const API_URL = 'http://localhost:5000';
-
+// https://coolors.co/392f5a-95190c-bd2d87-23ce6b-e9ce2c
+const messageIds = new Set();
 export default {
   components: {
     Message,
@@ -156,10 +157,12 @@ export default {
     },
     ackMessages: localStorage.ackMessages ? JSON.parse(localStorage.ackMessages) : {},
     offTopic: localStorage.offTopic ? JSON.parse(localStorage.offTopic) : {},
+    youtubeChatURL: `https://www.youtube.com/live_chat?v=2PqQvnqsqcg&embed_domain=${window.location.hostname}`,
+	  twitchChatURL: 'https://www.twitch.tv/embed/codinggarden/chat?darkpopout',
   }),
   computed: {
     unAckMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && !this.offTopic[m.id]);
+      return this.messages.filter(m => !this.ackMessages[m.id] && !this.offTopic[m.id] && !m.message.startsWith('!drop'));
     },
     reversedMessages() {
       return this.messages.slice().reverse();
@@ -168,7 +171,7 @@ export default {
       return this.messages.filter(m => !this.ackMessages[m.id] && m.message.match(/hi | hey |hello|good morning|good evening/gi));
     },
     followMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && m.platform === 'twitch' && m.channelId === '105166207' && m.message.startsWith('Thank you for following'))
+      return this.messages.filter(m => !this.ackMessages[m.id] && m.platform === 'twitch' && m.channelId === '105166207' && m.message.startsWith('Thank you for following'));
     },
     offTopicMessages() {
       return this.messages.filter(m => !this.ackMessages[m.id] && this.offTopic[m.id]);
@@ -180,13 +183,25 @@ export default {
       fetch(`${API_URL}/messages?id=${id}`).then(res => res.json()),
       fetch(`${API_URL}/authors?id=${id}`).then(res => res.json()),
     ]);
-    this.messages = messages;
+    this.messages = messages.filter((m) => {
+      if (!messageIds.has(m.id)) {
+        messageIds.add(m.id);
+        m.isPotentiallyNaughty = m.message.match(/<|>/i);
+        return true;
+      }
+    });
     this.authors = authors;
 
     const socket = io(API_URL);
     console.log('listening for messages with id', id);
     socket.on(`messages/${id}`, (data) => {
-      this.messages = this.messages.concat(data);
+      this.messages = this.messages.concat(data.filter((m) => {
+        if (!messageIds.has(m.id)) {
+          messageIds.add(m.id);
+          m.isPotentiallyNaughty = m.message.match(/<|>/i);
+          return true;
+        }
+      }));
     });
     socket.on(`authors/${id}`, (data) => {
       data.forEach((author) => {
@@ -197,6 +212,13 @@ export default {
   methods: {
     acknowledge(index, message) {
       this.$set(this.ackMessages, message.id, true);
+      localStorage.ackMessages = JSON.stringify(this.ackMessages);
+    },
+    acknowledgeAll() {
+      this.messages.forEach((message) => {
+        this.ackMessages[message.id] = true;
+      });
+      this.ackMessages = this.ackMessages;
       localStorage.ackMessages = JSON.stringify(this.ackMessages);
     },
     setOffTopic(message) {
@@ -229,14 +251,14 @@ main {
 }
 
 .msg-section .un-ack-messages {
-  width: 60%;
+  width: 100%;
   padding: 1rem;
 }
 
-.msg-section .all-messages {
+/* .msg-section .all-messages {
   width: 40%;
   padding: 1rem;
-}
+} */
 
 .message {
   display: flex;
@@ -244,6 +266,7 @@ main {
   position: relative;
   border-radius: 20px;
   margin-bottom: 10px;
+  min-height: 145px;
 }
 
 .avatar {
@@ -278,11 +301,15 @@ main {
   right: 10px;
 }
 
-.message:nth-child(1n) {
-  border: 1px solid #212122;
+.youtube-chat iframe {
+	width: 100%;
+	height: 500px;
+	border: none;
 }
 
-.message:nth-child(2n) {
-  background-color: black;
+.twitch-chat iframe {
+	width: 100%;
+	height: 150px;
+	border: none;
 }
 </style>

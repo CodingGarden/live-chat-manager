@@ -9,7 +9,7 @@
       <v-img
         class="white--text"
         height="200px"
-        :src="event.snippet.thumbnails.maxres.url"
+        :src="event.snippet.thumbnails.default.url"
       >
         <v-card-title class="align-end fill-height">{{event.snippet.title}}</v-card-title>
       </v-img>

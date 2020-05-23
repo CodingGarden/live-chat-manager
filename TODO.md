@@ -6,9 +6,10 @@
 
 ## Features
 
+* [ ] Purify and markdown render messages on the server!
 * [x] How many chat messages acknowledge vs need to acknowledge
 * [ ] Send a message...
-* [ ] Search chat messages
+* [x] Search chat messages
 * [x] Label messages
   * Question
   * Hello / Hi
