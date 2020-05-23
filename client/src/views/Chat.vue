@@ -3,13 +3,7 @@
     <!-- <h2>{{unAckMessages.length}} / {{messages.length}}</h2> -->
     <div class="msg-section">
       <section class="un-ack-messages">
-        <v-tabs
-          v-model="tab"
-          fixed-tabs
-          background-color="black"
-          dark
-          icons-and-text
-        >
+        <v-tabs v-model="tab" fixed-tabs background-color="black" dark icons-and-text>
           <v-tabs-slider></v-tabs-slider>
 
           <v-tab href="#tab-1">
@@ -58,9 +52,7 @@
         </v-tabs>
 
         <v-tabs-items v-model="tab">
-          <v-tab-item
-            value="tab-1"
-          >
+          <v-tab-item value="tab-1">
             <v-card flat color="black">
               <message
                 style="width: 100%;"
@@ -71,12 +63,11 @@
                 :message="message"
                 :index="index"
                 :setOffTopic="setOffTopic"
-                :acknowledge="acknowledge"></message>
+                :acknowledge="acknowledge"
+              ></message>
             </v-card>
           </v-tab-item>
-          <v-tab-item
-            value="tab-2"
-          >
+          <v-tab-item value="tab-2">
             <v-card flat color="black">
               <message
                 style="width: 100%;"
@@ -86,12 +77,11 @@
                 :author="authors[message.channelId]"
                 :message="message"
                 :index="index"
-                :acknowledge="acknowledge"></message>
+                :acknowledge="acknowledge"
+              ></message>
             </v-card>
           </v-tab-item>
-          <v-tab-item
-            value="tab-3"
-          >
+          <v-tab-item value="tab-3">
             <v-card flat color="black">
               <message
                 style="width: 100%;"
@@ -101,12 +91,11 @@
                 :author="authors[message.channelId]"
                 :message="message"
                 :index="index"
-                :acknowledge="acknowledge"></message>
+                :acknowledge="acknowledge"
+              ></message>
             </v-card>
           </v-tab-item>
-          <v-tab-item
-            value="tab-4"
-          >
+          <v-tab-item value="tab-4">
             <v-card flat color="black">
               <message
                 style="width: 100%;"
@@ -116,7 +105,8 @@
                 :author="authors[message.channelId]"
                 :message="message"
                 :index="index"
-                :acknowledge="acknowledge"></message>
+                :acknowledge="acknowledge"
+              ></message>
             </v-card>
           </v-tab-item>
         </v-tabs-items>
@@ -133,7 +123,7 @@
           :message="message"
           :index="index"
           :acknowledge="acknowledge"></message>
-      </section> -->
+      </section>-->
     </div>
   </section>
 </template>
@@ -153,35 +143,50 @@ export default {
   data: () => ({
     tab: null,
     messages: [],
-    authors: {
-    },
-    ackMessages: localStorage.ackMessages ? JSON.parse(localStorage.ackMessages) : {},
+    authors: {},
+    ackMessages: localStorage.ackMessages
+      ? JSON.parse(localStorage.ackMessages)
+      : {},
     offTopic: localStorage.offTopic ? JSON.parse(localStorage.offTopic) : {},
     youtubeChatURL: `https://www.youtube.com/live_chat?v=2PqQvnqsqcg&embed_domain=${window.location.hostname}`,
-	  twitchChatURL: 'https://www.twitch.tv/embed/codinggarden/chat?darkpopout',
+    twitchChatURL: 'https://www.twitch.tv/embed/codinggarden/chat?darkpopout',
   }),
   computed: {
     unAckMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && !this.offTopic[m.id] && !m.message.startsWith('!drop'));
+      return this.messages.filter(
+        (m) => !this.ackMessages[m.id]
+          && !this.offTopic[m.id]
+          && !m.message.startsWith('!drop'),
+      );
     },
     reversedMessages() {
       return this.messages.slice().reverse();
     },
     greetingMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && m.message.match(/hi | hey |hello|good morning|good evening/gi));
+      return this.messages.filter(
+        (m) => !this.ackMessages[m.id]
+          && m.message.match(/hi | hey |hello|good morning|good evening/gi),
+      );
     },
     followMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && m.platform === 'twitch' && m.channelId === '105166207' && m.message.startsWith('Thank you for following'));
+      return this.messages.filter(
+        (m) => !this.ackMessages[m.id]
+          && m.platform === 'twitch'
+          && m.channelId === '105166207'
+          && m.message.startsWith('Thank you for following'),
+      );
     },
     offTopicMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && this.offTopic[m.id]);
+      return this.messages.filter(
+        (m) => !this.ackMessages[m.id] && this.offTopic[m.id],
+      );
     },
   },
   async mounted() {
     const { id } = this.$route.params;
     const [messages, authors] = await Promise.all([
-      fetch(`${API_URL}/messages?id=${id}`).then(res => res.json()),
-      fetch(`${API_URL}/authors?id=${id}`).then(res => res.json()),
+      fetch(`${API_URL}/messages?id=${id}`).then((res) => res.json()),
+      fetch(`${API_URL}/authors?id=${id}`).then((res) => res.json()),
     ]);
     this.messages = messages.filter((m) => {
       if (!messageIds.has(m.id)) {
@@ -195,13 +200,15 @@ export default {
     const socket = io(API_URL);
     console.log('listening for messages with id', id);
     socket.on(`messages/${id}`, (data) => {
-      this.messages = this.messages.concat(data.filter((m) => {
-        if (!messageIds.has(m.id)) {
-          messageIds.add(m.id);
-          m.isPotentiallyNaughty = m.message.match(/<|>/i);
-          return true;
-        }
-      }));
+      this.messages = this.messages.concat(
+        data.filter((m) => {
+          if (!messageIds.has(m.id)) {
+            messageIds.add(m.id);
+            m.isPotentiallyNaughty = m.message.match(/<|>/i);
+            return true;
+          }
+        }),
+      );
     });
     socket.on(`authors/${id}`, (data) => {
       data.forEach((author) => {
@@ -233,7 +240,6 @@ export default {
 body {
   font-family: sans-serif;
   box-sizing: border-box;
-
 }
 
 main {
@@ -284,7 +290,7 @@ main {
 }
 
 .avatar small {
-  background-color:rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.7);
   padding: 0 5px;
 }
 
@@ -302,14 +308,14 @@ main {
 }
 
 .youtube-chat iframe {
-	width: 100%;
-	height: 500px;
-	border: none;
+  width: 100%;
+  height: 500px;
+  border: none;
 }
 
 .twitch-chat iframe {
-	width: 100%;
-	height: 150px;
-	border: none;
+  width: 100%;
+  height: 150px;
+  border: none;
 }
 </style>

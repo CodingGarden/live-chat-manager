@@ -30,12 +30,11 @@
 </template>
 
 <script>
-import timeago from 'timeago.js';
+import * as timeago from 'timeago.js';
 import marked from 'marked';
 import createDOMPurify from 'dompurify';
 
 const DOMPurify = createDOMPurify(window);
-const timeagoInstance = timeago();
 
 DOMPurify.addHook('afterSanitizeAttributes', (node) => {
   if (node.hasAttribute('src')) {
@@ -45,9 +44,9 @@ DOMPurify.addHook('afterSanitizeAttributes', (node) => {
 
 export default {
   props: ['author', 'message', 'index', 'acknowledge', 'setOffTopic', 'hideButtons'],
-  data: vm => ({
+  data: (vm) => ({
     timeoutId: -1,
-    published: timeagoInstance.format(vm.time),
+    published: timeago.format(vm.time),
     showSource: false,
     formatedMessage: '',
   }),
@@ -83,7 +82,7 @@ export default {
         });
     },
     updatePublished() {
-      this.published = timeagoInstance.format(this.message.publishedAt);
+      this.published = timeago.format(this.message.publishedAt);
       this.timeoutId = setTimeout(() => {
         this.updatePublished();
       }, 60000);

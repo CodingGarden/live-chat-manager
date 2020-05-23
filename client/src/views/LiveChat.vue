@@ -41,26 +41,26 @@ export default {
   }),
   computed: {
     unAckMessages() {
-      return this.messages.filter(m => !m.message.startsWith('!') && !this.ackMessages[m.id] && !this.offTopic[m.id]);
+      return this.messages.filter((m) => !m.message.startsWith('!') && !this.ackMessages[m.id] && !this.offTopic[m.id]);
     },
     reversedMessages() {
       return this.messages.slice().reverse();
     },
     greetingMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && m.message.match(/hi | hey |hello|good morning|good evening/gi));
+      return this.messages.filter((m) => !this.ackMessages[m.id] && m.message.match(/hi | hey |hello|good morning|good evening/gi));
     },
     followMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && m.platform === 'twitch' && m.channelId === '105166207' && m.message.startsWith('Thank you for following'))
+      return this.messages.filter((m) => !this.ackMessages[m.id] && m.platform === 'twitch' && m.channelId === '105166207' && m.message.startsWith('Thank you for following'));
     },
     offTopicMessages() {
-      return this.messages.filter(m => !this.ackMessages[m.id] && this.offTopic[m.id]);
+      return this.messages.filter((m) => !this.ackMessages[m.id] && this.offTopic[m.id]);
     },
   },
   async mounted() {
     const { id } = this.$route.params;
     const [messages, authors] = await Promise.all([
-      fetch(`${API_URL}/messages?id=${id}`).then(res => res.json()),
-      fetch(`${API_URL}/authors?id=${id}`).then(res => res.json()),
+      fetch(`${API_URL}/messages?id=${id}`).then((res) => res.json()),
+      fetch(`${API_URL}/authors?id=${id}`).then((res) => res.json()),
     ]);
     this.messages = messages.filter((m) => {
       if (!messageIds.has(m.id)) {
@@ -76,14 +76,13 @@ export default {
     console.log('listening for messages with id', id);
     socket.on(`messages/${id}`, (data) => {
       this.messages = this.messages.concat(data.filter((m) => {
-      if (!messageIds.has(m.id)) {
-        messageIds.add(m.id);
-        m.isPotentiallyNaughty = m.message.match(/<|>/i);
-        return true;
-      } else {
+        if (!messageIds.has(m.id)) {
+          messageIds.add(m.id);
+          m.isPotentiallyNaughty = m.message.match(/<|>/i);
+          return true;
+        }
         console.log('duplicate', m.id);
-      }
-    }));
+      }));
     });
     socket.on(`authors/${id}`, (data) => {
       data.forEach((author) => {
