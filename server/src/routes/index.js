@@ -101,6 +101,26 @@ async function getFfzEmotes() {
 getBttvEmotes();
 getFfzEmotes();
 
+const countries = new Map();
+
+async function getCountries() {
+  const response = await fetch('https://restcountries.eu/rest/v2/all?fields=alpha2Code;name;altSpellings;');
+  const json = await response.json();
+  json.forEach((country) => {
+    const item = {
+      code: country.alpha2Code.toLowerCase(),
+      name: country.name,
+    };
+    countries.set(item.code, item);
+    countries.set(country.name.toLowerCase(), item);
+    country.altSpellings.forEach((alt) => {
+      countries.set(alt.toLowerCase(), item);
+    });
+  });
+}
+
+getCountries();
+
 const twitchClient = new tmi.Client({
   options: {
     debug: true,
@@ -230,6 +250,26 @@ async function getLatestMessages(io, liveChatId) {
           delete author.team;
         } else {
           author.team = team.toLowerCase();
+        }
+        io.emit(`authors/${liveChatId}`, [author]);
+        await updateDB(liveChat);
+        return;
+      }
+    }
+
+    if (message.startsWith('!flag') || message.startsWith('!country')) {
+      const lookup = message.split(' ')[1];
+      const author = liveChat.authorsById[channelId];
+      if (lookup && author) {
+        if (lookup === 'clear') {
+          delete author.country;
+          delete author.country_name;
+        } else {
+          const country = countries.get(lookup.toLowerCase());
+          if (country) {
+            author.country = country.code;
+            author.country_name = country.name;
+          }
         }
         io.emit(`authors/${liveChatId}`, [author]);
         await updateDB(liveChat);
